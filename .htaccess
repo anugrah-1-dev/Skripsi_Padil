@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Arahkan /api/* ke backend Node.js (port 5000)
+RewriteCond %{REQUEST_URI} ^/api [NC]
+RewriteRule ^(.*)$ http://localhost:5000/$1 [P,L]
+
+# Untuk React Router - redirect semua ke index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]
