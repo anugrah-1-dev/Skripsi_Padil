@@ -1,10 +1,20 @@
 RewriteEngine On
 
-# Arahkan /api/* ke backend Node.js (port 5000)
+# ─── MIME Types (wajib untuk module JS/CSS) ──────────────────────────────────
+<IfModule mod_mime.c>
+    AddType application/javascript .js .mjs
+    AddType text/css .css
+    AddType application/json .json
+    AddType image/svg+xml .svg
+    AddType font/woff2 .woff2
+    AddType font/woff .woff
+</IfModule>
+
+# ─── Arahkan /api/* ke backend Node.js (port 5000) ───────────────────────────
 RewriteCond %{REQUEST_URI} ^/api [NC]
 RewriteRule ^(.*)$ http://localhost:5000/$1 [P,L]
 
-# Untuk React Router - redirect semua ke index.html
+# ─── React Router - redirect semua ke index.html ─────────────────────────────
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.html [L]

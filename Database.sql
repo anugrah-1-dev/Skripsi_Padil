@@ -20,8 +20,6 @@ SET time_zone = "+00:00";
 --
 -- Database: `csv_db 6`
 --
-CREATE DATABASE IF NOT EXISTS `csv_db 6` DEFAULT CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci;
-USE `csv_db 6`;
 
 -- --------------------------------------------------------
 
@@ -29,6 +27,7 @@ USE `csv_db 6`;
 -- Table structure for table `training_data`
 --
 
+DROP TABLE IF EXISTS `training_data`;
 CREATE TABLE `training_data` (
   `nama` varchar(33) DEFAULT NULL,
   `kelas` varchar(3) DEFAULT NULL,
@@ -206,8 +205,6 @@ INSERT INTO `training_data` (`nama`, `kelas`, `pai`, `ppkn`, `bahasa_indonesia`,
 --
 -- Database: `jurusan_db`
 --
-CREATE DATABASE IF NOT EXISTS `jurusan_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-USE `jurusan_db`;
 
 -- --------------------------------------------------------
 
@@ -215,6 +212,7 @@ USE `jurusan_db`;
 -- Table structure for table `siswa`
 --
 
+DROP TABLE IF EXISTS `siswa`;
 CREATE TABLE `siswa` (
   `id` int NOT NULL,
   `user_id` int DEFAULT NULL,
@@ -246,6 +244,7 @@ INSERT INTO `siswa` (`id`, `user_id`, `nama`, `kelas`, `status`, `jurusan`, `con
 -- Table structure for table `student_scores`
 --
 
+DROP TABLE IF EXISTS `student_scores`;
 CREATE TABLE `student_scores` (
   `id` int NOT NULL,
   `user_id` int DEFAULT NULL,
@@ -379,6 +378,7 @@ INSERT INTO `student_scores` (`id`, `user_id`, `pai`, `ppkn`, `bahasa_indonesia`
 -- Table structure for table `training_data`
 --
 
+DROP TABLE IF EXISTS `training_data`;
 CREATE TABLE `training_data` (
   `id` int NOT NULL,
   `nama` varchar(100) DEFAULT NULL,
@@ -562,6 +562,7 @@ INSERT INTO `training_data` (`id`, `nama`, `kelas`, `pai`, `ppkn`, `bahasa_indon
 -- Table structure for table `users`
 --
 
+DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` int NOT NULL,
   `nama` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
