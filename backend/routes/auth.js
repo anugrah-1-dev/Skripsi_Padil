@@ -59,15 +59,15 @@ router.post("/login", (req, res) => {
     });
   });
 });
-router.post("/forgot-password", (req, res) => {
+router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
   console.log("KIRIM KE:", email);
   if (!email) {
     return res.status(400).json({ message: "Email wajib diisi" });
   }
 
-  db.query("SELECT * FROM users WHERE email=?", [email], async (err, result) => {
-    if (err) return res.status(500).json({ message: "Server error" });
+  try {
+    const [result] = await db.promise().query("SELECT * FROM users WHERE email=?", [email]);
 
     if (result.length === 0) {
       return res.status(404).json({ message: "Email tidak ditemukan" });
@@ -75,24 +75,17 @@ router.post("/forgot-password", (req, res) => {
 
     const user = result[0];
 
-    // 🔥 generate token reset
+    // generate token reset
     const token = crypto.randomBytes(32).toString("hex");
     const expire = new Date(Date.now() + 3600000); // 1 jam
 
-    db.query(
-  "UPDATE users SET reset_token=?, reset_expired=? WHERE id=?",
-  [token, expire, user.id],
-  (err) => {
-    if (err) {
-      console.error("DB ERROR:", err);
-      return res.status(500).json({ message: "Gagal simpan token" });
-    }
-
+    await db.promise().query(
+      "UPDATE users SET reset_token=?, reset_expired=? WHERE id=?",
+      [token, expire, user.id]
+    );
     console.log("TOKEN KE DB BERHASIL");
-  }
-);
 
-    // 🔥 EMAIL CONFIG
+    // EMAIL CONFIG
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -103,7 +96,7 @@ router.post("/forgot-password", (req, res) => {
 
     const resetLink = `${process.env.APP_URL || "http://localhost:5173"}/reset-password/${token}`;
 
-    const mailOptions = {
+    await transporter.sendMail({
       from: "SMA Harapan Bangsa",
       to: email,
       subject: "Reset Password",
@@ -112,18 +105,14 @@ router.post("/forgot-password", (req, res) => {
         <p>Klik link berikut untuk reset password:</p>
         <a href="${resetLink}">${resetLink}</a>
       `
-    };
-
-    transporter.sendMail(mailOptions, (err) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Gagal kirim email" });
-      }
-
-      res.json({ message: "Link reset password berhasil dikirim ke email" });
     });
-  });
-}); 
+
+    res.json({ message: "Link reset password berhasil dikirim ke email" });
+  } catch (err) {
+    console.error("FORGOT PASSWORD ERROR:", err);
+    res.status(500).json({ message: err.message || "Gagal kirim email" });
+  }
+});
 
 router.post("/reset-password/:token", async (req, res) => {
   const { token } = req.params;
