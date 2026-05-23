@@ -87,10 +87,12 @@ router.post("/forgot-password", async (req, res) => {
 
     // EMAIL CONFIG
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
       auth: {
-        user: "fadhilpraa2024@gmail.com",
-        pass: "bqpiujcfvfcxcoti"
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
       }
     });
 
@@ -122,6 +124,7 @@ router.post("/reset-password/:token", async (req, res) => {
     "SELECT * FROM users WHERE reset_token = ? AND reset_expired > NOW()",
     [token],
     async (err, result) => {
+      if (err) return res.status(500).json({ message: "Server error" });
       if (result.length === 0) {
         return res.status(400).json({ message: "Token tidak valid / expired" });
       }
