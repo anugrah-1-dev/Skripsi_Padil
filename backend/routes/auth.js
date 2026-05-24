@@ -4,7 +4,7 @@ const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
 
 
@@ -85,21 +85,11 @@ router.post("/forgot-password", async (req, res) => {
     );
     console.log("TOKEN KE DB BERHASIL");
 
-    // EMAIL CONFIG
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const resetLink = `${process.env.APP_URL || "http://localhost:5173"}/reset-password/${token}`;
 
-    await transporter.sendMail({
-      from: "SMA Harapan Bangsa",
+    await resend.emails.send({
+      from: "SMA Harapan Bangsa <noreply@treesmaga.com>",
       to: email,
       subject: "Reset Password",
       html: `
