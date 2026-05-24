@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Award, TrendingUp, Search, Download, Eye } from 'lucide-react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../../../config';
 
 
@@ -85,6 +86,40 @@ const fetchStats = async () => {
     (item.jurusanRekomendasi || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // 🔥 EXPORT EXCEL
+  const handleExportExcel = () => {
+    const rows = filteredData.map((item, index) => ({
+      'No.': index + 1,
+      'Nama': item.nama,
+      'Kelas': item.kelas,
+      'Jurusan Rekomendasi': item.jurusanRekomendasi,
+      'Confidence (%)': item.confidence,
+      'Tanggal': item.tanggal,
+      'PAI': item.nilai?.pai ?? '-',
+      'PPKn': item.nilai?.ppkn ?? '-',
+      'B. Indonesia': item.nilai?.bahasa_indonesia ?? '-',
+      'B. Inggris': item.nilai?.bahasa_inggris ?? '-',
+      'Matematika': item.nilai?.matematika_umum ?? '-',
+      'IPA': item.nilai?.ipa ?? '-',
+      'IPS': item.nilai?.ips ?? '-',
+      'B. Daerah': item.nilai?.bahasa_daerah ?? '-',
+      'PJOK': item.nilai?.pjok ?? '-',
+      'Seni': item.nilai?.seni ?? '-',
+      'Informatika': item.nilai?.informatika ?? '-',
+      'Alasan': Array.isArray(item.alasan) ? item.alasan.join('; ') : (item.alasan || '-'),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Hasil Rekomendasi');
+
+    const today = new Date().toLocaleDateString('id-ID', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    }).replace(/\//g, '-');
+
+    XLSX.writeFile(wb, `Hasil_Rekomendasi_${today}.xlsx`);
+  };
+
   
 
    // 🔥 STATS BARU (SESUAI REQUEST LU)
@@ -119,9 +154,12 @@ const pending = stats.pending;
           <h1 className="text-3xl font-bold text-gray-900">Hasil Rekomendasi</h1>
           <p className="text-gray-500 mt-1">Prediksi jurusan untuk siswa berdasarkan Decision Tree C4.5</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+        <button
+          onClick={handleExportExcel}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
           <Download className="w-4 h-4" />
-          Export Laporan
+          Export Excel
         </button>
       </div>
 
