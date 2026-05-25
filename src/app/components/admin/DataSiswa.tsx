@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Edit, Search, Filter } from "lucide-react";
+import { Plus, Trash2, Edit, Search, Filter, Play } from "lucide-react";
 import axios from "axios";
 import { API_BASE_URL } from '../../../config';
 
@@ -14,6 +14,7 @@ export function DataSiswa() {
   const [editingData, setEditingData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
   
   const nilaiList = [
     "pai","ppkn","bahasa_indonesia","bahasa_inggris",
@@ -143,6 +144,32 @@ export function DataSiswa() {
     setShowModal(true);
   };
 
+  const handleBulkProcess = async () => {
+    if (stats.pending === 0) {
+      alert("Semua siswa sudah diproses.");
+      return;
+    }
+    if (!confirm(`Proses ${stats.pending} siswa yang belum mendapat rekomendasi?`)) return;
+
+    setBulkLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/admin/bulk-process`);
+      const { message, skippedNames } = res.data;
+      let alertMsg = message;
+      if (skippedNames && skippedNames.length > 0) {
+        alertMsg += `\n\nSiswa yang dilewati (nilai belum lengkap):\n${skippedNames.join("\n")}`;
+      }
+      alert(alertMsg);
+      fetchData();
+      fetchStats();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Terjadi kesalahan.");
+      console.error(err);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   const handleEdit = (siswa: any) => {
     setEditingData(siswa);
     setFormData({
@@ -252,16 +279,27 @@ export function DataSiswa() {
     <div className="space-y-6">
 
       {/* HEADER */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Data Siswa</h1>
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded"
-        >
-          <Plus className="w-4 h-4" />
-          Tambah
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleBulkProcess}
+            disabled={bulkLoading || stats.pending === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Play className="w-4 h-4" />
+            {bulkLoading ? "Memproses..." : `Proses Semua (${stats.pending})`}
+          </button>
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            <Plus className="w-4 h-4" />
+            Tambah
+          </button>
+        </div>
       </div>
 
       {/* STATS */}
