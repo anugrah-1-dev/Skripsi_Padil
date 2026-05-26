@@ -159,13 +159,25 @@ router.get("/siswa-stats", (req, res) => {
 
   const query = `
 SELECT
-  (SELECT COUNT(*) FROM student_scores) AS totalSiswa,
-
-  (
-    SELECT COUNT(*)
-    FROM siswa
-    WHERE jurusan IS NOT NULL
+  COUNT(*) AS totalSiswa,
+  SUM(
+    CASE
+      WHEN EXISTS (
+        SELECT 1
+        FROM siswa sr
+        WHERE sr.user_id = COALESCE(ss.user_id, um.id)
+          AND sr.jurusan IS NOT NULL
+      ) THEN 1
+      ELSE 0
+    END
   ) AS rekomendasiDibuat
+FROM student_scores ss
+LEFT JOIN (
+  SELECT LOWER(TRIM(nama)) AS normalized_nama, MIN(id) AS id
+  FROM users
+  GROUP BY LOWER(TRIM(nama))
+) um
+  ON um.normalized_nama = LOWER(TRIM(ss.nama))
 `;
 
   db.query(query, (err, rows) => {
@@ -211,7 +223,12 @@ SELECT
   ss.informatika,
 
   CASE
-    WHEN sr.id IS NOT NULL
+    WHEN EXISTS (
+      SELECT 1
+      FROM siswa sr
+      WHERE sr.user_id = COALESCE(ss.user_id, um.id)
+        AND sr.jurusan IS NOT NULL
+    )
     THEN 'Sudah Diproses'
     ELSE 'Belum Diproses'
   END AS status,
@@ -234,11 +251,12 @@ SELECT
 
 FROM student_scores ss
 
-LEFT JOIN users u
-ON LOWER(TRIM(u.nama)) = LOWER(TRIM(ss.nama))
-
-LEFT JOIN siswa sr
-ON sr.user_id = u.id
+LEFT JOIN (
+  SELECT LOWER(TRIM(nama)) AS normalized_nama, MIN(id) AS id
+  FROM users
+  GROUP BY LOWER(TRIM(nama))
+) um
+ON um.normalized_nama = LOWER(TRIM(ss.nama))
 
 ORDER BY ss.nama ASC
 `;
@@ -298,55 +316,73 @@ router.put("/siswa-data/:id", (req, res) => {
     informatika
   } = req.body;
 
-  const query = `
-    UPDATE student_scores SET
-      nama = ?,
-      kelas = ?,
-      pai = ?,
-      ppkn = ?,
-      bahasa_indonesia = ?,
-      bahasa_inggris = ?,
-      matematika_umum = ?,
-      ipa = ?,
-      ips = ?,
-      bahasa_daerah = ?,
-      pjok = ?,
-      seni = ?,
-      informatika = ?
-    WHERE id = ?
+  const getUserQuery = `
+    SELECT id
+    FROM users
+    WHERE LOWER(TRIM(nama)) = LOWER(TRIM(?))
+    LIMIT 1
   `;
 
-  db.query(
-    query,
-    [
-      nama,
-      kelas,
-      pai,
-      ppkn,
-      bahasa_indonesia,
-      bahasa_inggris,
-      matematika_umum,
-      ipa,
-      ips,
-      bahasa_daerah,
-      pjok,
-      seni,
-      informatika,
-      id
-    ],
-    (err) => {
-
-      if (err) {
-        console.error("UPDATE ERROR:", err);
-        return res.status(500).json(err);
-      }
-
-      res.json({
-        message: "Data siswa berhasil diupdate"
-      });
-
+  db.query(getUserQuery, [nama], (userErr, userResult) => {
+    if (userErr) {
+      console.error("USER ERROR:", userErr);
+      return res.status(500).json(userErr);
     }
-  );
+
+    const resolvedUserId = userResult.length > 0 ? userResult[0].id : null;
+
+    const query = `
+      UPDATE student_scores SET
+        user_id = ?,
+        nama = ?,
+        kelas = ?,
+        pai = ?,
+        ppkn = ?,
+        bahasa_indonesia = ?,
+        bahasa_inggris = ?,
+        matematika_umum = ?,
+        ipa = ?,
+        ips = ?,
+        bahasa_daerah = ?,
+        pjok = ?,
+        seni = ?,
+        informatika = ?
+      WHERE id = ?
+    `;
+
+    db.query(
+      query,
+      [
+        resolvedUserId,
+        nama,
+        kelas,
+        pai,
+        ppkn,
+        bahasa_indonesia,
+        bahasa_inggris,
+        matematika_umum,
+        ipa,
+        ips,
+        bahasa_daerah,
+        pjok,
+        seni,
+        informatika,
+        id
+      ],
+      (err) => {
+
+        if (err) {
+          console.error("UPDATE ERROR:", err);
+          return res.status(500).json(err);
+        }
+
+        res.json({
+          message: "Data siswa berhasil diupdate"
+        });
+
+      }
+    );
+  });
 
 });
 router.post("/siswa-data", (req, res) => {
@@ -554,15 +590,26 @@ router.post("/bulk-process", async (req, res) => {
       );
     });
 
-    // Ambil semua siswa di student_scores yang belum ada di siswa
+    // Ambil semua siswa yang belum direkomendasikan.
+    // Jika user_id di student_scores kosong, coba fallback dari users berdasarkan nama.
     const pendingRows = await new Promise((resolve, reject) => {
       db.query(
-        `SELECT ss.*
+        `SELECT
+          ss.*,
+          COALESCE(ss.user_id, um.id) AS resolved_user_id
          FROM student_scores ss
-         WHERE ss.user_id IS NOT NULL
-           AND ss.user_id NOT IN (
-             SELECT user_id FROM siswa WHERE user_id IS NOT NULL
-           )`,
+         LEFT JOIN (
+           SELECT LOWER(TRIM(nama)) AS normalized_nama, MIN(id) AS id
+           FROM users
+           GROUP BY LOWER(TRIM(nama))
+         ) um
+           ON um.normalized_nama = LOWER(TRIM(ss.nama))
+         WHERE NOT EXISTS (
+           SELECT 1
+           FROM siswa sr
+           WHERE sr.user_id = COALESCE(ss.user_id, um.id)
+             AND sr.jurusan IS NOT NULL
+         )`,
         (err, rows) => (err ? reject(err) : resolve(rows))
       );
     });
@@ -575,6 +622,7 @@ router.post("/bulk-process", async (req, res) => {
     let failCount = 0;
     let skippedCount = 0;
     const skippedNames = [];
+    const unresolvedNames = [];
 
     const SCORE_KEYS = [
       "pai", "ppkn", "bahasa_indonesia", "bahasa_inggris",
@@ -583,6 +631,15 @@ router.post("/bulk-process", async (req, res) => {
     ];
 
     for (const student of pendingRows) {
+      const resolvedUserId = student.resolved_user_id;
+
+      // Tidak bisa diproses jika belum punya akun users yang bisa dipetakan.
+      if (!resolvedUserId) {
+        skippedCount++;
+        unresolvedNames.push(student.nama || `id:${student.id}`);
+        continue;
+      }
+
       // Lewati siswa yang nilainya belum lengkap (ada yang 0 atau NULL)
       const hasIncomplete = SCORE_KEYS.some(
         (k) => student[k] === null || student[k] === undefined || Number(student[k]) === 0
@@ -616,7 +673,7 @@ router.post("/bulk-process", async (req, res) => {
               (user_id, nama, kelas, jurusan, confidence, status, alasan, tree, entropy, information_gain)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              student.user_id,
+              resolvedUserId,
               student.nama,
               student.kelas,
               result.jurusan,
@@ -631,18 +688,30 @@ router.post("/bulk-process", async (req, res) => {
           );
         });
 
+        // Sinkronkan user_id di student_scores jika sebelumnya null.
+        if (!student.user_id) {
+          await new Promise((resolve, reject) => {
+            db.query(
+              "UPDATE student_scores SET user_id = ? WHERE id = ?",
+              [resolvedUserId, student.id],
+              (err) => (err ? reject(err) : resolve())
+            );
+          });
+        }
+
         successCount++;
       } catch (e) {
-        console.error(`Gagal proses user_id ${student.user_id}:`, e.message);
+        console.error(`Gagal proses user_id ${resolvedUserId}:`, e.message);
         failCount++;
       }
     }
 
     res.json({
-      message: `Berhasil memproses ${successCount} siswa.${skippedCount > 0 ? ` Dilewati (nilai belum lengkap): ${skippedCount}.` : ""}${failCount > 0 ? ` Gagal: ${failCount}.` : ""}`,
+      message: `Berhasil memproses ${successCount} siswa.${skippedCount > 0 ? ` Dilewati: ${skippedCount}.` : ""}${failCount > 0 ? ` Gagal: ${failCount}.` : ""}${unresolvedNames.length > 0 ? " Sebagian dilewati karena belum terhubung ke akun user." : ""}`,
       processed: successCount,
       skipped: skippedCount,
       skippedNames,
+      unresolvedNames,
       failed: failCount,
     });
 

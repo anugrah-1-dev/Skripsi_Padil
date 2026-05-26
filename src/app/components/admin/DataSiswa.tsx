@@ -115,6 +115,7 @@ export function DataSiswa() {
         console.log("DELETE SUCCESS:", res.data);
 
         fetchData();
+        fetchStats();
       } catch (err) {
         console.error("DELETE ERROR:", err);
       }
@@ -154,10 +155,13 @@ export function DataSiswa() {
     setBulkLoading(true);
     try {
       const res = await axios.post(`${API_BASE_URL}/admin/bulk-process`);
-      const { message, skippedNames } = res.data;
+      const { message, skippedNames, unresolvedNames } = res.data;
       let alertMsg = message;
       if (skippedNames && skippedNames.length > 0) {
         alertMsg += `\n\nSiswa yang dilewati (nilai belum lengkap):\n${skippedNames.join("\n")}`;
+      }
+      if (unresolvedNames && unresolvedNames.length > 0) {
+        alertMsg += `\n\nSiswa yang dilewati (akun user tidak ditemukan):\n${unresolvedNames.join("\n")}`;
       }
       alert(alertMsg);
       fetchData();
@@ -228,6 +232,7 @@ export function DataSiswa() {
 
       setShowModal(false);
       fetchData();
+      fetchStats();
 
       // 🔥 reset biar ga nyangkut data lama
       setFormData({
