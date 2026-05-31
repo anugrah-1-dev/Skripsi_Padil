@@ -376,6 +376,17 @@ router.put("/siswa-data/:id", (req, res) => {
           return res.status(500).json(err);
         }
 
+        // Sinkronisasi kelas ke tabel users
+        if (resolvedUserId) {
+          db.query(
+            "UPDATE users SET kelas = ? WHERE id = ?",
+            [kelas, resolvedUserId],
+            (syncErr) => {
+              if (syncErr) console.error("SYNC KELAS ERROR:", syncErr);
+            }
+          );
+        }
+
         res.json({
           message: "Data siswa berhasil diupdate"
         });
@@ -487,6 +498,17 @@ router.post("/siswa-data", (req, res) => {
           if (err) {
             console.error("INSERT ERROR:", err);
             return res.status(500).json(err);
+          }
+
+          // Sinkronisasi kelas ke tabel users
+          if (user_id) {
+            db.query(
+              "UPDATE users SET kelas = ? WHERE id = ?",
+              [kelas, user_id],
+              (syncErr) => {
+                if (syncErr) console.error("SYNC KELAS ERROR:", syncErr);
+              }
+            );
           }
 
           res.json({

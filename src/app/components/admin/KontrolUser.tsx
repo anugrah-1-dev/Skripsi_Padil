@@ -21,7 +21,6 @@ export function KontrolUser() {
     email: "",
     passwordBaru: "", // Diganti namanya biar lebih jelas
     role: "siswa",
-    kelas: "",
   });
 
   const [showModal, setShowModal] = useState(false);
@@ -62,7 +61,6 @@ export function KontrolUser() {
         // Backend lu harusnya nangkep "password" dari form.passwordBaru ini
         password: form.passwordBaru, 
         role: form.role,
-        kelas: form.kelas,
       };
 
       if (editingId) {
@@ -90,7 +88,6 @@ export function KontrolUser() {
         email: "",
         passwordBaru: "",
         role: "siswa",
-        kelas: "",
       });
       setEditingId(null);
       setShowModal(false);
@@ -110,7 +107,6 @@ export function KontrolUser() {
       email: user.email,
       passwordBaru: "", // Dikosongkan, nunggu inputan baru kalau mau direset
       role: user.role,
-      kelas: user.kelas || "",
     });
     setShowNewPassword(false);
   };
@@ -168,7 +164,7 @@ export function KontrolUser() {
           onClick={() => {
             setShowModal(true);
             setEditingId(null);
-            setForm({ nama: "", email: "", passwordBaru: "", role: "siswa", kelas: "" });
+            setForm({ nama: "", email: "", passwordBaru: "", role: "siswa" });
             setShowNewPassword(false);
           }}
           className="w-full xl:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-5 rounded-2xl shadow-lg hover:shadow-xl transition-all whitespace-nowrap flex items-center justify-center gap-3 text-xl shrink-0 h-full"
@@ -211,14 +207,7 @@ export function KontrolUser() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Kelas</label>
-                  <select value={form.kelas} onChange={(e) => setForm({ ...form, kelas: e.target.value })} className="w-full border border-gray-300 bg-gray-50 p-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="">Pilih Kelas</option>
-                    <option value="10A">10-A</option>
-                    <option value="10B">10-B</option>
-                  </select>
-                </div>
+
 
                 {/* 2 KOLOM PASSWORD SEPERTI REQUEST */}
                 <div className="md:col-span-2 bg-gray-50 p-5 rounded-xl border border-gray-200 mt-2">
