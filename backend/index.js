@@ -1,6 +1,11 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
+const envPath = fs.existsSync(path.join(__dirname, ".env.local"))
+  ? path.join(__dirname, ".env.local")
+  : path.join(__dirname, ".env");
+require("dotenv").config({ path: envPath });
 const app = express();
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
@@ -41,8 +46,9 @@ app.get("/", (req, res) => {
   res.send("API Running 🚀");
 });
 
-app.listen(5000, () => {
-  console.log("Server running on http://localhost:5000");
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 setInterval(() => {}, 1000);
