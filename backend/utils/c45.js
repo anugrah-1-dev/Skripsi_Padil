@@ -420,8 +420,8 @@ function processRecommendation(student, trainingData) {
 
   // Jika confidence sangat rendah, gunakan nearest mean sebagai fallback
   const finalJurusan = confidence < 25 ? nearestMean(student) : jurusan;
-  const finalConfidence =
-  Math.max(confidence, 72);
+  // Pakai nilai asli dari C4.5. Tapi kalau pakai nearestMean, set default jadi 50% atau nilai tebakan terdekat.
+  const finalConfidence = confidence < 25 ? 50 : confidence;
 
   // Hitung entropy dan IG dari data training
   const rootEntropy = entropy(trainingData);

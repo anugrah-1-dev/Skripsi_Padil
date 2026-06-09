@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
+const { classifyStudent } = require("../utils/c45");
 
 // 🔥 DASHBOARD ADMIN
 // 🔥 DASHBOARD ADMIN - FIXED
@@ -540,6 +541,115 @@ router.delete("/hasil-rekomendasi/:id", (req, res) => {
     }
   );
 
+});
+
+// 🔥 BULK PROCESS: proses semua siswa yang belum punya rekomendasi
+router.post("/bulk-process", async (req, res) => {
+  try {
+    // Ambil training data
+    const trainingData = await new Promise((resolve, reject) => {
+      db.query(
+        "SELECT * FROM training_data WHERE jurusan IS NOT NULL",
+        (err, rows) => (err ? reject(err) : resolve(rows))
+      );
+    });
+
+    // Ambil semua siswa di student_scores yang belum ada di siswa
+    const pendingRows = await new Promise((resolve, reject) => {
+      db.query(
+        `SELECT ss.*
+         FROM student_scores ss
+         WHERE ss.user_id IS NOT NULL
+           AND ss.user_id NOT IN (
+             SELECT user_id FROM siswa WHERE user_id IS NOT NULL
+           )`,
+        (err, rows) => (err ? reject(err) : resolve(rows))
+      );
+    });
+
+    if (pendingRows.length === 0) {
+      return res.json({ message: "Tidak ada siswa yang perlu diproses.", processed: 0 });
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+    let skippedCount = 0;
+    const skippedNames = [];
+
+    const SCORE_KEYS = [
+      "pai", "ppkn", "bahasa_indonesia", "bahasa_inggris",
+      "matematika_umum", "ipa", "ips", "bahasa_daerah",
+      "pjok", "seni", "informatika",
+    ];
+
+    for (const student of pendingRows) {
+      // Lewati siswa yang nilainya belum lengkap (ada yang 0 atau NULL)
+      const hasIncomplete = SCORE_KEYS.some(
+        (k) => student[k] === null || student[k] === undefined || Number(student[k]) === 0
+      );
+      if (hasIncomplete) {
+        skippedCount++;
+        skippedNames.push(student.nama || `user_id:${student.user_id}`);
+        continue;
+      }
+
+      try {
+        const scores = {
+          pai:              Number(student.pai),
+          ppkn:             Number(student.ppkn),
+          bahasa_indonesia: Number(student.bahasa_indonesia),
+          bahasa_inggris:   Number(student.bahasa_inggris),
+          matematika_umum:  Number(student.matematika_umum),
+          ipa:              Number(student.ipa),
+          ips:              Number(student.ips),
+          bahasa_daerah:    Number(student.bahasa_daerah),
+          pjok:             Number(student.pjok),
+          seni:             Number(student.seni),
+          informatika:      Number(student.informatika),
+        };
+
+        const result = classifyStudent(scores, trainingData);
+
+        await new Promise((resolve, reject) => {
+          db.query(
+            `INSERT INTO siswa
+              (user_id, nama, kelas, jurusan, confidence, status, alasan, tree, entropy, information_gain)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              student.user_id,
+              student.nama,
+              student.kelas,
+              result.jurusan,
+              result.confidence,
+              "Sudah Diproses",
+              JSON.stringify(result.alasan),
+              null,
+              result.entropy,
+              result.information_gain,
+            ],
+            (err) => (err ? reject(err) : resolve())
+          );
+        });
+
+        successCount++;
+      } catch (e) {
+        console.error(`Gagal proses user_id ${student.user_id}:`, e.message);
+        failCount++;
+      }
+    }
+
+    res.json({
+      message: `Berhasil memproses ${successCount} siswa.${skippedCount > 0 ? ` Dilewati (nilai belum lengkap): ${skippedCount}.` : ""}${failCount > 0 ? ` Gagal: ${failCount}.` : ""}`,
+      processed: successCount,
+      skipped: skippedCount,
+      skippedNames,
+      failed: failCount,
+    });
+
+  } catch (err) {
+    console.error("BULK PROCESS ERROR:", err);
+    res.status(500).json({ message: "Terjadi kesalahan saat bulk process.", error: err.message });
+  }
 });
 
 module.exports = router;
