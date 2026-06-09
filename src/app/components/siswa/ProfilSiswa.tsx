@@ -412,19 +412,7 @@ export function ProfilSiswa() {
                     />
                   </div>
 
-                  {/* NIS */}
-                  <div className="space-y-2">
-                    <Label htmlFor="nis">NIS</Label>
-                    <Input
-                      id="nis"
-                      value={profileForm.nis}
-                      disabled
-                      className="bg-gray-50"
-                    />
-                    <p className="text-xs text-gray-500">
-                      NIS tidak dapat diubah
-                    </p>
-                  </div>
+
 
                   {/* Kelas (🔥 DIUBAH JADI DROPDOWN DROPDOWN) */}
                   <div className="space-y-2">

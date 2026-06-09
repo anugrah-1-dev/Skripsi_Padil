@@ -5,7 +5,6 @@ interface User {
   nama: string;
   email: string;
   role: string;
-  kelas?: string;
   password?: string; // Tambahkan ini jika API mengirim hash
 }
 
@@ -20,7 +19,6 @@ export function KontrolUser() {
     email: "",
     passwordBaru: "", // Diganti namanya biar lebih jelas
     role: "siswa",
-    kelas: "",
   });
 
   const [showModal, setShowModal] = useState(false);
@@ -61,7 +59,6 @@ export function KontrolUser() {
         // Backend lu harusnya nangkep "password" dari form.passwordBaru ini
         password: form.passwordBaru, 
         role: form.role,
-        kelas: form.kelas,
       };
 
       if (editingId) {
@@ -89,7 +86,6 @@ export function KontrolUser() {
         email: "",
         passwordBaru: "",
         role: "siswa",
-        kelas: "",
       });
       setEditingId(null);
       setShowModal(false);
@@ -109,7 +105,6 @@ export function KontrolUser() {
       email: user.email,
       passwordBaru: "", // Dikosongkan, nunggu inputan baru kalau mau direset
       role: user.role,
-      kelas: user.kelas || "",
     });
     setShowNewPassword(false);
   };
@@ -167,7 +162,7 @@ export function KontrolUser() {
           onClick={() => {
             setShowModal(true);
             setEditingId(null);
-            setForm({ nama: "", email: "", passwordBaru: "", role: "siswa", kelas: "" });
+            setForm({ nama: "", email: "", passwordBaru: "", role: "siswa" });
             setShowNewPassword(false);
           }}
           className="w-full xl:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-5 rounded-2xl shadow-lg hover:shadow-xl transition-all whitespace-nowrap flex items-center justify-center gap-3 text-xl shrink-0 h-full"
@@ -201,21 +196,12 @@ export function KontrolUser() {
                   <input type="email" placeholder="Masukkan email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-300 bg-gray-50 p-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none" required />
                 </div>
 
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
                   <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full border border-gray-300 bg-gray-50 p-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="admin">Admin</option>
                     <option value="guru">Guru</option>
                     <option value="siswa">Siswa</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Kelas</label>
-                  <select value={form.kelas} onChange={(e) => setForm({ ...form, kelas: e.target.value })} className="w-full border border-gray-300 bg-gray-50 p-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="">Pilih Kelas</option>
-                    <option value="10A">10-A</option>
-                    <option value="10B">10-B</option>
                   </select>
                 </div>
 
@@ -294,7 +280,6 @@ export function KontrolUser() {
                 <th className="p-5 text-left font-bold text-gray-600 uppercase text-sm tracking-wider">Nama Lengkap</th>
                 <th className="p-5 text-left font-bold text-gray-600 uppercase text-sm tracking-wider">Email</th>
                 <th className="p-5 text-left font-bold text-gray-600 uppercase text-sm tracking-wider">Role</th>
-                <th className="p-5 text-left font-bold text-gray-600 uppercase text-sm tracking-wider">Kelas</th>
                 <th className="p-5 text-center font-bold text-gray-600 uppercase text-sm tracking-wider">Aksi</th>
               </tr>
             </thead>
@@ -311,7 +296,6 @@ export function KontrolUser() {
                         {user.role}
                       </span>
                     </td>
-                    <td className="p-5 text-gray-600 font-medium">{user.kelas || "-"}</td>
                     <td className="p-5 flex gap-3 justify-center">
                       <button onClick={() => handleEdit(user)} className="bg-amber-500 hover:bg-amber-600 shadow-md transition text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Edit
@@ -324,7 +308,7 @@ export function KontrolUser() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="p-10 text-center text-gray-500 font-semibold text-lg bg-gray-50/50">
+                  <td colSpan={4} className="p-10 text-center text-gray-500 font-semibold text-lg bg-gray-50/50">
                     Tidak ada user yang ditemukan.
                   </td>
                 </tr>

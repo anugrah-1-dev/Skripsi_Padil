@@ -75,7 +75,7 @@ const getAverage = () => {
       {/* Welcome Card */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-2">Selamat Datang, {user?.nama}!</h1>
-        <p className="text-blue-100">NIS: {user?.nis} | Kelas: {user?.kelas}</p>
+        <p className="text-blue-100">Kelas: {user?.kelas}</p>
         <p className="mt-4 text-lg">
           Gunakan sistem rekomendasi jurusan untuk mengetahui jurusan yang paling sesuai dengan kemampuan akademik Anda.
         </p>
