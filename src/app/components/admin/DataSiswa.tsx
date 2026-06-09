@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, Edit, Search, Filter, Play } from "lucide-react";
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:5000/api";
 
 export function DataSiswa() {
   const [siswaData, setSiswaData] = useState<any[]>([]);
